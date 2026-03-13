@@ -41,6 +41,33 @@ STARTUP_TIMEOUT = 420
 POLL_INTERVAL   = 3
 ```
 
+**docker containers** — build image first using the included `Dockerfile`, then create containers:
+
+```bash
+docker build -t vllm-local /path/to/Dockerfile/dir/
+
+# vision model
+docker create --name vllm-vision --gpus '"device=0"' -p 8000:8000 \
+  -e HF_HUB_OFFLINE=1 \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  vllm-local \
+  --model Qwen/Qwen2.5-VL-7B-Instruct-AWQ \
+  --quantization awq --dtype float16 \
+  --max-model-len 32768 --gpu-memory-utilization 0.75
+
+# text model
+docker create --name vllm-text --gpus '"device=0"' -p 8000:8000 \
+  -e HF_HUB_OFFLINE=1 \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  vllm-local \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --gpu-memory-utilization 0.9
+
+# whisper (CPU)
+docker create --name whisper-asr -p 9000:9000 \
+  onerahmet/openai-whisper-asr-webservice:latest
+```
+
 `ffmpeg` also needs to be installed on your system.
 
 ```bash
