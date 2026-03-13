@@ -6,6 +6,7 @@ self hosted LLM instances:
 - whisper asr for audio to text
 
 takes in instagram reel link, outputs a markdown formatted file w recipe and saves it to my obsidian vault
+
 you can remove the obsidian part if you dont care, i have my obsidian vaults synced across devices so i can run this on my pc, sync my vault over git, and it gets autosynced on my phone :)
 
 CONFIG.py is needed in project directory
@@ -41,7 +42,7 @@ STARTUP_TIMEOUT = 420
 POLL_INTERVAL   = 3
 ```
 
-**docker containers** — build image first using the included `Dockerfile`, then create containers:
+build image first using `Dockerfile`, then create containers:
 
 ```bash
 docker build -t vllm-local /path/to/Dockerfile/dir/
@@ -68,7 +69,7 @@ docker create --name whisper-asr -p 9000:9000 \
   onerahmet/openai-whisper-asr-webservice:latest
 ```
 
-`ffmpeg` also needs to be installed on your system.
+`ffmpeg` also needs to be installed and available on PATH
 
 ```bash
 python reel_to_recipe.py <instagram_reel_url>
