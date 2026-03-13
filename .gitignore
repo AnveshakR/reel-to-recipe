@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+logs/
+run_*/
+.venv/
+
+CONFIG.py
+reel_to_recipe.log
+watch_logs.sh
+reel-to-recipe.service
