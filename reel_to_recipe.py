@@ -36,9 +36,11 @@ if __name__ == "__main__":
 
     url = sys.argv[1]
     base_dir = sys.argv[2] if len(sys.argv) > 2 else "."
+    parsed_dir = os.path.join(base_dir, "parsed_recipes")
+    os.makedirs(parsed_dir, exist_ok=True)
 
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = os.path.join(base_dir, f"run_{run_id}")
+    run_dir = os.path.join(parsed_dir, f"run_{run_id}")
     os.makedirs(run_dir, exist_ok=True)
 
     logger.info("Run folder: %s", run_dir)
@@ -68,7 +70,7 @@ if __name__ == "__main__":
 
     full_document = f"[Source Reel]({url})\n\n{recipe_document}"
 
-    final_dir = os.path.join(base_dir, recipe_name)
+    final_dir = os.path.join(parsed_dir, recipe_name)
     if os.path.exists(final_dir):
         final_dir = f"{final_dir}_{run_id}"
     os.rename(run_dir, final_dir)

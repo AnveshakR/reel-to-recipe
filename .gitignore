@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 logs/
 run_*/
+parsed_recipes/
 .venv/
 
 CONFIG.py
