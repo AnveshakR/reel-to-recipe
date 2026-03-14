@@ -99,12 +99,14 @@ if __name__ == "__main__":
         logger.info("Step 7: Performing Git operations in the vault directory...")
         git_file = os.path.relpath(vault_md_file_path, VAULT_ROOT)
         try:
+            subprocess.run(["git", "-C", VAULT_ROOT, "stash"], check=True)
+            subprocess.run(["git", "-C", VAULT_ROOT, "pull", "--rebase"], check=True)
+            subprocess.run(["git", "-C", VAULT_ROOT, "stash", "pop"], check=True)
             subprocess.run(["git", "-C", VAULT_ROOT, "add", git_file], check=True)
             subprocess.run(
                 ["git", "-C", VAULT_ROOT, "commit", "-m", f"Add {recipe_name}.md"],
                 check=True,
             )
-            subprocess.run(["git", "-C", VAULT_ROOT, "pull", "--rebase"], check=True)
             subprocess.run(["git", "-C", VAULT_ROOT, "push"], check=True)
             logger.info("Git operations completed successfully.")
         except subprocess.CalledProcessError as e:
