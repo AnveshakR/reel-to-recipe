@@ -102,7 +102,8 @@ if __name__ == "__main__":
         git_file = os.path.relpath(vault_md_file_path, VAULT_ROOT)
         try:
             subprocess.run(["git", "-C", VAULT_ROOT, "stash"], check=True)
-            subprocess.run(["git", "-C", VAULT_ROOT, "pull", "--rebase"], check=True)
+            subprocess.run(["git", "-C", VAULT_ROOT, "fetch", "origin"], check=True)
+            subprocess.run(["git", "-C", VAULT_ROOT, "reset", "--hard", "origin/main"], check=True)
             subprocess.run(["git", "-C", VAULT_ROOT, "stash", "pop"], check=True)
             subprocess.run(["git", "-C", VAULT_ROOT, "add", git_file], check=True)
             subprocess.run(
