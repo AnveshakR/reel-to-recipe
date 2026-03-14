@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime
 
 sys.stdout.reconfigure(line_buffering=True)  # type: ignore
@@ -45,28 +46,40 @@ if __name__ == "__main__":
 
     logger.info("Run folder: %s", run_dir)
 
+    t_total = time.time()
+
     logger.info("Step 1: Downloading video...")
+    t = time.time()
     metadata = download_video(url, run_dir)
     video_path = metadata["filepath"]
+    logger.info("Step 1 done in %.1fs.", time.time() - t)
 
     logger.info("Step 2: Extracting frames and audio...")
+    t = time.time()
     frames, audio_path = extract_frames_and_audio(
         video_path, run_dir, frames_per_second=0.2
     )
+    logger.info("Step 2 done in %.1fs.", time.time() - t)
 
     logger.info("Step 3: Analyzing frames with vision model...")
+    t = time.time()
     with running(VISION_CONTAINER):
         frame_descriptions = analyze_frames(frames)
+    logger.info("Step 3 done in %.1fs.", time.time() - t)
 
     logger.info("Step 4: Transcribing audio...")
+    t = time.time()
     with running(WHISPER_CONTAINER):
         transcript = transcribe_audio(audio_path)
+    logger.info("Step 4 done in %.1fs.", time.time() - t)
 
     logger.info("Step 5: Compiling recipe document...")
+    t = time.time()
     with running(TEXT_CONTAINER):
         recipe_document = compile_document(metadata, frame_descriptions, transcript)
         logger.info("Generating recipe name...")
         recipe_name = generate_recipe_name(recipe_document)
+    logger.info("Step 5 done in %.1fs.", time.time() - t)
 
     full_document = f"[Source Reel]({url})\n\n{recipe_document}"
 
@@ -87,9 +100,9 @@ if __name__ == "__main__":
         f.write(transcript)
 
     logger.info("Outputs saved to: %s/", final_dir)
-    logger.info("Done!")
 
     logger.info("Step 6: Adding generated MD file to the Obsidian vault...")
+    t = time.time()
     if not os.path.exists(VAULT_PATH):
         logger.warning("Vault directory %s does not exist. Skipping vault integration.", VAULT_PATH)
     else:
@@ -114,3 +127,6 @@ if __name__ == "__main__":
             logger.info("Git operations completed successfully.")
         except subprocess.CalledProcessError as e:
             logger.error("Git operation failed: %s", e)
+        logger.info("Steps 6-7 done in %.1fs.", time.time() - t)
+
+    logger.info("Done! Total time: %.1fs.", time.time() - t_total)
