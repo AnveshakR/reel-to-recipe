@@ -19,14 +19,7 @@ from vision_model import analyze_frames
 
 from CONFIG import VAULT_ROOT, VAULT_PATH, VISION_CONTAINER, TEXT_CONTAINER, WHISPER_CONTAINER
 
-_log_fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-_file_handler = logging.FileHandler(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "reel_to_recipe.log")
-)
-_file_handler.setFormatter(_log_fmt)
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logging.getLogger().addHandler(_file_handler)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +36,12 @@ if __name__ == "__main__":
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = os.path.join(parsed_dir, f"run_{run_id}")
     os.makedirs(run_dir, exist_ok=True)
+
+    logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    _file_handler = logging.FileHandler(os.path.join(logs_dir, f"run_{run_id}.log"))
+    _file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logging.getLogger().addHandler(_file_handler)
 
     logger.info("Run folder: %s", run_dir)
 
@@ -114,10 +113,35 @@ if __name__ == "__main__":
         logger.info("Step 7: Performing Git operations in the vault directory...")
         git_file = os.path.relpath(vault_md_file_path, VAULT_ROOT)
         try:
-            subprocess.run(["git", "-C", VAULT_ROOT, "stash"], check=True)
+            stash_result = subprocess.run(
+                ["git", "-C", VAULT_ROOT, "stash"], check=True, capture_output=True, text=True
+            )
+            did_stash = "No local changes to save" not in stash_result.stdout
+
             subprocess.run(["git", "-C", VAULT_ROOT, "fetch", "origin"], check=True)
             subprocess.run(["git", "-C", VAULT_ROOT, "reset", "--hard", "origin/main"], check=True)
-            subprocess.run(["git", "-C", VAULT_ROOT, "stash", "pop"], check=True)
+
+            if did_stash:
+                pop_result = subprocess.run(
+                    ["git", "-C", VAULT_ROOT, "stash", "pop"], capture_output=False
+                )
+                if pop_result.returncode != 0:
+                    # Resolve conflicts limited to .obsidian/ (ephemeral Obsidian UI state)
+                    conflict_result = subprocess.run(
+                        ["git", "-C", VAULT_ROOT, "diff", "--name-only", "--diff-filter=U"],
+                        check=True, capture_output=True, text=True,
+                    )
+                    conflicted = [f.strip() for f in conflict_result.stdout.splitlines() if f.strip()]
+                    non_obsidian = [f for f in conflicted if not f.startswith(".obsidian/")]
+                    if non_obsidian:
+                        raise subprocess.CalledProcessError(
+                            pop_result.returncode, "git stash pop",
+                            stderr=f"Unresolvable conflicts: {non_obsidian}"
+                        )
+                    for f in conflicted:
+                        subprocess.run(["git", "-C", VAULT_ROOT, "rm", "-f", f], check=True)
+                    logger.warning("Auto-resolved .obsidian/ conflicts from stash pop: %s", conflicted)
+
             subprocess.run(["git", "-C", VAULT_ROOT, "add", git_file], check=True)
             subprocess.run(
                 ["git", "-C", VAULT_ROOT, "commit", "-m", f"Add {recipe_name}.md"],
